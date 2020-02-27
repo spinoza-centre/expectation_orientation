@@ -19,6 +19,7 @@ class HRFMapperSession(Session):
         self.n_trials = round((exp_s['total_run_duration'] - (exp_s['start_end_period'] * 2)) / mean_trial_duration)
         tolerance_range = [exp_s['total_run_duration'] - exp_s['temporal_tolerance'], exp_s['total_run_duration'] + exp_s['temporal_tolerance']]
 
+        # and then search for the right isis to fill up the experiment exactly.
         isis = np.random.exponential(exp_s['isi_mean'], n_trials) + exp_s['isi_min']
         exp_duration = isis + (exp_s['start_end_period'] * 2)
         while exp_duration < tolerance_range[0] or exp_duration > tolerance_range[1]:
@@ -91,10 +92,16 @@ class HRFMapperTrial(Trial):
         super().__init__(session, trial_nr, phase_durations, phase_names,
                          parameters, timing, verbose, load_next_during_phase)
         self.condition = condition
-
+        self.last_fix_time, self.last_stim_time = 0.0
 
     def draw(self):
         if self.phase == 0:  # Python starts counting from 0, and so should you
-            self.fixation_dot.draw()
-        else:  # assuming that there are only 2 phases
-            self.word.
+            self.last_fix_time = self.session.clock.getTime()
+        elif self.phase == 1:  # assuming that there are only 2 phases
+            self.last_stim_time = self.session.clock.getTime()
+            total_stim_time = self.last_stim_time - self.last_fix_time
+            stim_index = min(total_stim_time // self.duration_per_image, len(self.parameters['stim_list']-1)
+            self.session.stimuli[self.parameters['stim_list'][stim_index]].draw()
+        self.fixation_dot.draw()
+
+
