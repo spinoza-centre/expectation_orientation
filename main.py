@@ -1,13 +1,13 @@
 import click
 import os.path as op
-from .session import HRFMapperSession
+from .hrfmapper import HRFMapperSession
 
 
 @click.command()
 @click.option('--sub', default='01', type=str, help='Subject nr (e.g., 01)')
 @click.option('--run', default=1, type=int, help='Run nr')
-@click.option('--dummies', default=None, type=int, help='Number of dummy scans')
-@click.option('--settings', default=None, type=str, help='Settings file')
+@click.option('--dummies', default=0, type=int, help='Number of dummy scans')
+@click.option('--settings', default='settings.yml', type=str, help='Settings file')
 
 def main_api(sub, run, dummies, settings):
 
