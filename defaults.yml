@@ -52,9 +52,21 @@ mri:
 
 experiment:
   stim_flicker_freq: 2 # Hz
-  stim_size: 10 # dva
+  fixation_center_size: 0.125
+  fixation_surround_size: 0.75
+
+  train_grating_size: 8
+  train_grating_contrast: 0.6
+  train_grating_sf: 1
+  train_grating_fringewidth: 0.1
+
+  test_grating_size: 8
+  test_grating_contrast: 0.6
+  test_grating_sf: 1
+  test_grating_fringewidth: 0.1
+
   warn_duration: 0.5
-  stim_duration: 0.05 # s times two
+  test_stim_duration: 0.05 # s times two
   iti: 0.05
   total_trial_duration: 4 # s
   start_end_period: 16 # s

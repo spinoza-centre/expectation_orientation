@@ -5,6 +5,38 @@ from psychopy.visual import GratingStim, Circle
 
 
 class ExpOriMapperSession(EyelinkSession):
+
+    def create_stimuli(self):
+        """ Creates stimuli for the session """
+        exp_s = self.settings['experiment']
+
+        self.center_fixation_dot = Circle(self.win, radius=exp_s['fixation_center_size'], edges=200, color='w')
+        self.surround_fixation_dot = Circle(self.win, radius=exp_s['fixation_surround_size'], edges=200, color=0)
+
+        if self.run_type == 'train':
+            size = exp_s['train_grating_size']
+            sf = exp_s['train_grating_sf']
+            contrast = exp_s['train_grating_contrast']
+            fringewidth = exp_s['train_grating_fringewidth']
+        elif self.run_type == 'test':
+            size = exp_s['test_grating_size']
+            sf = exp_s['test_grating_sf']
+            contrast = exp_s['test_grating_contrast']
+            fringewidth = exp_s['test_grating_fringewidth']
+        else:
+            raise ValueError('Unknown run type: {}'.format(self.run_type))
+        self.grating = GratingStim(win=self.session.win,
+                                tex='sin',
+                                size=size,
+                                sf=sf,
+                                contrast=contrast,
+                                ori=0,
+                                phase=0,
+                                mask='raisedCos',
+                                maskParams={'fringeWidth': fringewidth},
+                                texRes=1024)
+
+
     def create_trials(self):
         """ Creates trials before running the session"""
         exp_s = self.settings['experiment']
