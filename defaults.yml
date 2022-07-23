@@ -51,13 +51,10 @@ mri:
   sound: False # simulate scanner noise
 
 experiment:
-  stim_file: "data/stimuli.mat"
-  stim_flicker_freq: 12 # Hz
+  stim_flicker_freq: 2 # Hz
   stim_size: 10 # dva
-  stim_duration: 0.75 # s
-  isi_min: 2.5 # s
-  isi_max: 15 # s
-  isi_mean: 4 # on top of the isi_min
-  start_end_period: 12 # s
-  total_run_duration: 240 # s
-  temporal_tolerance: 0.5 # s
+  warn_duration: 0.5
+  stim_duration: 0.05 # s times two
+  iti: 0.05
+  total_trial_duration: 4 # s
+  start_end_period: 16 # s

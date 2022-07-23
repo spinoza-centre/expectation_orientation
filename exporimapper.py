@@ -1,10 +1,10 @@
-from exptools2.core import Session
+from exptools2.core import EyelinkSession
 import numpy as np
 import h5py
 from psychopy.visual import GratingStim, Circle
 
 
-class HRFMapperSession(Session):
+class ExpOriMapperSession(EyelinkSession):
     def create_trials(self):
         """ Creates trials before running the session"""
         exp_s = self.settings['experiment']
@@ -63,7 +63,7 @@ class HRFMapperSession(Session):
         self.create_trials()  # create them *before* running!
         self.start_experiment()
 
-        for trail in self.trials:
+        for trial in self.trials:
             trial.run()
 
         self.close()
@@ -111,7 +111,7 @@ class HRFMapperTrial(Trial):
         elif self.phase == 1:  # assuming that there are only 2 phases
             self.last_stim_time = self.session.clock.getTime()
             total_stim_time = self.last_stim_time - self.last_fix_time
-            stim_index = min(total_stim_time // self.duration_per_image, len(self.parameters['stim_list']-1)
+            stim_index = min(total_stim_time // self.duration_per_image, len(self.parameters['stim_list'])-1)
             self.session.stimuli[self.parameters['stim_list']
                 [stim_index]].draw()
         self.session.fixation_dot.draw()
