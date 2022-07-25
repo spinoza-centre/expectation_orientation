@@ -1,17 +1,34 @@
+from genericpath import isfile
 from exptools2.core import EyelinkSession
 import numpy as np
-import h5py
+import h5py, yaml
+import os, sys, time
+import pandas as pd
 from psychopy.visual import GratingStim, Circle
-
-
+from .trial import InstructionTrial, DummyWaiterTrial, OutroTrial, ExpOriMapperTrial, PositioningTrial
 class ExpOriMapperSession(EyelinkSession):
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.create_trials()
+
+
+    def update_stimulus_position(self):
+        """ Updates the stimulus position """
+        self.grating.pos = (self.stim_position_info['x_offset'], self.stim_position_info['y_offset'])
+        self.grating.size = (self.stim_position_info['width'], self.stim_position_info['height'])
+
+        for dot in [self.center_fixation_dot, self.surround_fixation_dot]:
+            dot.pos = (self.stim_position_info['x_offset'], self.stim_position_info['y_offset'])
 
     def create_stimuli(self):
         """ Creates stimuli for the session """
         exp_s = self.settings['experiment']
 
-        self.center_fixation_dot = Circle(self.win, radius=exp_s['fixation_center_size'], edges=200, color='w')
-        self.surround_fixation_dot = Circle(self.win, radius=exp_s['fixation_surround_size'], edges=200, color=0)
+        self.center_fixation_dot = Circle(
+            self.win, radius=exp_s['fixation_center_size'], edges=200, color='w')
+        self.surround_fixation_dot = Circle(
+            self.win, radius=exp_s['fixation_surround_size'], edges=200, color=0)
 
         if self.run_type == 'train':
             size = exp_s['train_grating_size']
@@ -26,68 +43,89 @@ class ExpOriMapperSession(EyelinkSession):
         else:
             raise ValueError('Unknown run type: {}'.format(self.run_type))
         self.grating = GratingStim(win=self.session.win,
-                                tex='sin',
-                                size=size,
-                                sf=sf,
-                                contrast=contrast,
-                                ori=0,
-                                phase=0,
-                                mask='raisedCos',
-                                maskParams={'fringeWidth': fringewidth},
-                                texRes=1024)
-
+                                   tex='sin',
+                                   size=size,
+                                   sf=sf,
+                                   contrast=contrast,
+                                   ori=0,
+                                   phase=0,
+                                   mask='raisedCos',
+                                   maskParams={'fringeWidth': fringewidth},
+                                   texRes=1024)
 
     def create_trials(self):
         """ Creates trials before running the session"""
         exp_s = self.settings['experiment']
 
-        # get stimuli
-        with h5py.File(exp_s['stim_file'], 'r') as f:
-            self.stim_rgb_arr = np.array(f['patterns'])
-        self.stimuli = [GratingStim(win=self.session.win, tex=s.T)
-                                    for s in self.stim_rgb_arr]
-        self.fixation_dot = Circle(self.win, radius=0.1, edges=100, color='r')
+        instruction_trial = InstructionTrial(session=self,
+                                             trial_nr=0,
+                                             phase_durations=[np.inf],
+                                             txt=self.settings['stimuli'].get('instruction_text'),
+                                             keys=['space'],
+                                             draw_each_frame=False)
 
-        # timings that define how many trials etc.
-        mean_trial_duration = exp_s['isi_min'] + exp_s['isi_mean']
-        self.n_trials = round(
-            (exp_s['total_run_duration'] - (exp_s['start_end_period'] * 2)) / mean_trial_duration)
-        tolerance_range = [exp_s['total_run_duration'] - exp_s['temporal_tolerance'],
-            exp_s['total_run_duration'] + exp_s['temporal_tolerance']]
+        dummy_trial = DummyWaiterTrial(session=self,
+                                       trial_nr=1,
+                                       phase_durations=[
+                                       np.inf, exp_s['start_end_period']],
+                                       txt=self.settings['stimuli'].get('pretrigger_text'),
+                                       draw_each_frame=False)
 
-        # and then search for the right isis to fill up the experiment exactly.
-        isis = np.random.exponential(
-            exp_s['isi_mean'], n_trials) + exp_s['isi_min']
-        exp_duration = isis + (exp_s['start_end_period'] * 2)
-        while exp_duration < tolerance_range[0] or exp_duration > tolerance_range[1]:
-            isis = np.random.exponential(
-                exp_s['isi_mean'], n_trials) + exp_s['isi_min']
-            exp_duration = isis + (exp_s['start_end_period'] * 2)
-        pretimes = np.zeros(self.n_trials)
-        pretimes[[0, -1]] = exp_s['start_end_period']
+        # paths
+        default_settings_path = os.path.join(op.dirname(__file__),
+                                        'defaults.yml')
+        tsv_path = os.path.join(op.dirname(__file__),
+            f'run_designs/sub-{str(self.sub).zfill(2)}/sub-{str(self.sub).zfill(2)}_task-{str(self.task)}_run{str(self.run).zfill(2)}.tsv')
 
-        # deciding which stimuli to show when
-        self.how_many_images_per_trial = exp_s['stim_flicker_freq'] * \
-            exp_s['stim_duration']
-        self.duration_per_image = 1.0/exp_s['stim_flicker_freq']
+        with open(default_settings_path, 'r', encoding='utf8') as f_in:
+            default_settings = yaml.safe_load(f_in)
+        self.trial_df = pd.read_csv(tsv_path, sep='\t', index_col=0, na_values='NA')
 
-        trial_images = np.random.randint(len(self.stimuli), size=(
-            self.n_trials, self.how_many_images_per_trial))
+        # read in or set up stimulus positioning
+        self.stim_pos_info_path = f'data/sub-{str(self.sub).zfill(2)}_ses-{str(self.ses).zfill(2)}.yml'
+        if os.path.isfile(self.stim_pos_info_path):
+            with open(self.stim_pos_info_path, 'r', encoding='utf8') as f_in:
+                self.stim_position_info = yaml.safe_load(f_in)
+            self.trials = [instruction_trial, dummy_trial]
+        else:
+            self.stim_position_info = default_settings['stim_position_info']
+            if self.stim_position_info['repositioning_required']:
+                position_trial = PositioningTrial(session=self)
+                self.trials = [position_trial, instruction_trial, dummy_trial]
+            else:
+                self.trials = [instruction_trial, dummy_trial]
 
+        stim_pres_duration = 2*exp_s['test_stim_duration']+exp_s['test_interstim_interval']
+        remainder_trial_duration = -0.1 + exp_s['total_trial_duration'] - (stim_pres_duration + exp_s['warn_duration'])
+
+        trial_counter = len(self.trials)
         for i in range(self.n_trials):
-            self.trials.append(HRFMapperTrial(
-                    session=self,
-                    trial_nr=i,
-                    phase_durations=[
-                        pretimes[i], exp_s['stim_duration'], isis[i]-exp_s['stim_duration']],
-                    phase_names=['slack', 'stim', 'isi'],
-                    parameters={'isi': isis[i],
-                                'stim_list': trial_images[i]},
-                    timing='seconds',
-                    load_next_during_phase=None,
-                    verbose=True,
-                    condition='hrf'
-            ))
+            self.trials.append(ExpOriMapperTrial(
+                session=self,
+                trial_nr=i,
+                phase_durations=[
+                    exp_s['warn_duration'],
+                    stim_pres_duration,
+                    remainder_trial_duration
+                ]
+                phase_names=['warning', 'stim', 'response'],
+                parameters=self.trial_df.iloc[i].to_dict(),
+                timing='seconds',
+                load_next_during_phase=None,
+                verbose=True,
+                condition=self.task)
+                )
+            trial_counter += 1
+
+
+        outro_trial = OutroTrial(session=self,
+                                 trial_nr=trial_counter,
+                                 phase_durations=[
+                                     exp_s['start_end_period']],
+                                 txt='',
+                                 draw_each_frame=False)
+
+        self.trials.append(outro_trial)
 
     def run(self):
         """ Loops over trials and runs them! """
@@ -99,51 +137,3 @@ class ExpOriMapperSession(EyelinkSession):
             trial.run()
 
         self.close()
-
-
-class HRFMapperTrial(Trial):
-
-    def __init__(self, session, trial_nr, phase_durations, phase_names,
-                 parameters, timing, load_next_during_phase,
-                 verbose, condition='hrf'):
-        """ Initializes a HRFMapperTrial object.
-
-        Parameters
-        ----------
-        session : exptools Session object
-            A Session object (needed for metadata)
-        trial_nr: int
-            Trial nr of trial
-        phase_durations : array-like
-            List/tuple/array with phase durations
-        phase_names : array-like
-            List/tuple/array with names for phases (only for logging),
-            optional (if None, all are named 'stim')
-        parameters : dict
-            Dict of parameters that needs to be added to the log of this trial
-        timing : str
-            The "units" of the phase durations. Default is 'seconds', where we
-            assume the phase-durations are in seconds. The other option is
-            'frames', where the phase-"duration" refers to the number of frames.
-        load_next_during_phase : int (or None)
-            If not None, the next trial will be loaded during this phase
-        verbose : bool
-            Whether to print extra output (mostly timing info)
-        condition : str
-            Condition of the Stroop trial (either 'congruent' or 'incongruent')
-        """
-        super().__init__(session, trial_nr, phase_durations, phase_names,
-                         parameters, timing, verbose, load_next_during_phase)
-        self.condition = condition
-        self.last_fix_time, self.last_stim_time = 0.0
-
-    def draw(self):
-        if self.phase == 0:  # Python starts counting from 0, and so should you
-            self.last_fix_time = self.session.clock.getTime()
-        elif self.phase == 1:  # assuming that there are only 2 phases
-            self.last_stim_time = self.session.clock.getTime()
-            total_stim_time = self.last_stim_time - self.last_fix_time
-            stim_index = min(total_stim_time // self.duration_per_image, len(self.parameters['stim_list'])-1)
-            self.session.stimuli[self.parameters['stim_list']
-                [stim_index]].draw()
-        self.session.fixation_dot.draw()

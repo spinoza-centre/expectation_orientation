@@ -59,14 +59,38 @@ experiment:
   train_grating_contrast: 0.6
   train_grating_sf: 1
   train_grating_fringewidth: 0.1
+  train_stim_duration: 0.05 # s times two
+  train_interstim_interval: 0.05
 
   test_grating_size: 8
   test_grating_contrast: 0.6
   test_grating_sf: 1
   test_grating_fringewidth: 0.1
+  test_stim_duration: 0.05 # s times two
+  test_interstim_interval: 0.05
 
   warn_duration: 0.5
-  test_stim_duration: 0.05 # s times two
-  iti: 0.05
   total_trial_duration: 4 # s
   start_end_period: 16 # s
+
+  instruction_text: "please report the direction of rotation of the presented grating: CW (right index) or CCW (left index)"
+  pretrigger_text: "waiting for scanner"
+
+
+various:
+  text_width: 300
+  text_height: 40
+  text_position_x: 0
+  text_position_y: 100
+  buttons: ['b', 'j', 'k', 'l', 'semicolon']
+
+stim_position_info:
+  repositioning_required: False
+  x_offset: 0
+  y_offset: 0
+  width: 1
+  height: 1
+  screen_rotation: 0
+
+position_experiment:
+  keys: []

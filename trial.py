@@ -1,15 +1,22 @@
+import numpy as np
+from psychopy.visual import TextStim, ShapeStim
+
+
 class InstructionTrial(Trial):
     """ Simple trial with instruction text. """
 
     def __init__(self, session, trial_nr, phase_durations=[np.inf],
                  txt=None, keys=None, draw_each_frame=False, **kwargs):
 
-        super().__init__(session, trial_nr, phase_durations, draw_each_frame=draw_each_frame, **kwargs)
+        super().__init__(session, trial_nr, phase_durations,
+                         draw_each_frame=draw_each_frame, **kwargs)
 
         txt_height = self.session.settings['various'].get('text_height')
         txt_width = self.session.settings['various'].get('text_width')
-        text_position_x = self.session.settings['various'].get('text_position_x')
-        text_position_y = self.session.settings['various'].get('text_position_y')
+        text_position_x = self.session.settings['various'].get(
+            'text_position_x')
+        text_position_y = self.session.settings['various'].get(
+            'text_position_y')
 
         if txt is None:
             txt = '''Press any button to continue.'''
@@ -18,23 +25,23 @@ class InstructionTrial(Trial):
                              height=txt_height,
                              wrapWidth=txt_width,
                              pos=[text_position_x, text_position_y],
-                             font='Songti SC',
-                             alignText = 'center',
-                             anchorHoriz = 'center',
-                             anchorVert = 'center')
+                             font='Helvetica',
+                             alignText='center',
+                             anchorHoriz='center',
+                             anchorVert='center')
         self.text.setSize(txt_height)
 
         self.keys = keys
 
     def draw(self):
-        self.session.fixation.draw()
-        self.session.report_fixation.draw()
+        self.session.stim_position_info.draw()
+        self.session.center_fixation_dot.draw()
 
         self.text.draw()
         self.session.win.flip()
 
     def get_events(self):
-        events = super().get_events()
+        events = super().get_events(timeStamped=self.session.clock)
 
         if self.keys is None:
             if events:
@@ -51,18 +58,19 @@ class DummyWaiterTrial(InstructionTrial):
     def __init__(self, session, trial_nr, phase_durations=None,
                  txt="Waiting for scanner triggers.", draw_each_frame=False, **kwargs):
 
-        super().__init__(session, trial_nr, phase_durations, txt, draw_each_frame=draw_each_frame, **kwargs)
+        super().__init__(session, trial_nr, phase_durations,
+                         txt, draw_each_frame=draw_each_frame, **kwargs)
+        self.text.setOpacity(0.25)
 
     def draw(self):
-        self.session.fixation.draw()
+        self.session.surround_fixation_dot.draw()
+        self.session.center_fixation_dot.draw()
         if self.phase == 0:
             self.text.draw()
-        else:
-            self.session.report_fixation.draw()
         self.session.win.flip()
 
     def get_events(self):
-        events = Trial.get_events(self)
+        events = super().get_events(self)
 
         if events:
             for key, t in events:
@@ -70,11 +78,6 @@ class DummyWaiterTrial(InstructionTrial):
                     if self.phase == 0:
                         self.stop_phase()
                         self.session.win.flip()
-                        #####################################################
-                        ## TRIGGER HERE
-                        #####################################################
-                        self.session.experiment_start_time = getTime()
-                        self.session.parallel_trigger(self.session.settings['design'].get('ttl_trigger_start'))
 
 
 class OutroTrial(InstructionTrial):
@@ -83,21 +86,30 @@ class OutroTrial(InstructionTrial):
     def __init__(self, session, trial_nr, phase_durations, txt='', draw_each_frame=False, **kwargs):
 
         txt = ''''''
-        super().__init__(session, trial_nr, phase_durations, txt=txt, draw_each_frame=draw_each_frame, **kwargs)
+        super().__init__(session, trial_nr, phase_durations,
+                         txt=txt, draw_each_frame=draw_each_frame, **kwargs)
 
     def get_events(self):
-        events = Trial.get_events(self)
+        events = super().get_events(self)
 
         if events:
             for key, t in events:
                 if key == 'space':
                     self.stop_phase()
 
+    def draw(self):
+        self.session.surround_fixation_dot.draw()
+        self.session.center_fixation_dot.draw()
+        if self.phase == 0:
+            self.text.draw()
+        self.session.win.flip()
+
+
 class ExpOriMapperTrial(Trial):
 
     def __init__(self, session, trial_nr, phase_durations, phase_names,
                  parameters, timing, load_next_during_phase,
-                 verbose, condition='hrf'):
+                 verbose, condition='train'):
         """ Initializes a ExpOriMapperTrial object.
 
         Parameters
@@ -122,7 +134,7 @@ class ExpOriMapperTrial(Trial):
         verbose : bool
             Whether to print extra output (mostly timing info)
         condition : str
-            Condition of the Stroop trial (either 'congruent' or 'incongruent')
+            Condition of the trial (either 'train' or 'test')
         """
         super().__init__(session, trial_nr, phase_durations, phase_names,
                          parameters, timing, verbose, load_next_during_phase)
@@ -140,3 +152,118 @@ class ExpOriMapperTrial(Trial):
             self.session.stimuli[self.parameters['stim_list']
                                  [stim_index]].draw()
         self.session.fixation_dot.draw()
+
+    def get_events(self):
+        events = super().get_events(self)
+
+        if events:
+            for key, t in events:
+                if key == 'space':
+                    self.stop_phase()
+
+
+class PositioningTrial(Trial):
+    """ Simple trial with text (trial x) and fixation. """
+
+    def __init__(self, session, trial_nr, phase_durations=(1e9,), **kwargs):
+        super().__init__(session, trial_nr, phase_durations, **kwargs)
+
+        self.keys = self.session.settings['position_experiment']['keys']
+        self.current_topic = 'x_offset'
+
+        txt_height = self.session.settings['various'].get('text_height')
+        txt_width = self.session.settings['various'].get('text_width')
+        text_position_x = self.session.settings['various'].get(
+            'text_position_x')
+        text_position_y = self.session.settings['various'].get(
+            'text_position_y')
+
+        self.info = TextStim(self.session.win, """""",
+                             height=txt_height,
+                             wrapWidth=txt_width,
+                             pos=[text_position_x, text_position_y],
+                             font='Helvetica',
+                             alignText='center',
+                             anchorHoriz='center',
+                             anchorVert='center')
+        self.text.setSize(txt_height)
+
+        angles = np.linspace(0, 2*np.pi, 300)
+        self.shape = np.array([[np.sin(a),  np.cos(a)] for a in angles])
+        self.pos_stim = ShapeStim(win=self.session.win,
+                                    vertices=self.shape,
+                                    size=[self.session.stim_position_info['width'],
+                                            self.session.stim_position_info['height']],
+                                    pos=[self.session.stim_position_info['x_offset'],
+                                        self.session.stim_position_info['y_offset']])
+
+    def draw(self):
+        """ Draws stimuli """
+
+        self.pos_stim.draw()
+        self.session.pos_stim.draw()
+        self.session.fixation_stimulus.draw()
+        self.info.draw()
+
+    def get_events(self):
+        events = super().get_events(timeStamped=self.session.clock)
+
+        if events:
+            if 'q' in [ev[0] for ev in events]:  # specific key in settings?
+                self.session.close()
+                self.session.quit()
+
+        for e in events:
+            if e[0] in self.keys:
+                ix = self.keys.index(e[0])
+
+                if ix == 0:
+                    if self.current_topic == 'x_offset':
+                        self.session.stim_position_info['x_offset'] -= 0.1
+                    elif self.current_topic == 'y_offset':
+                        self.session.stim_position_info['y_offset'] -= 0.1
+                    elif self.current_topic == 'width':
+                        self.session.stim_position_info['width'] -= 0.1
+                    elif self.current_topic == 'height':
+                        self.session.stim_position_info['height'] -= 0.1
+                elif ix == 1:
+                    if self.current_topic == 'x_offset':
+                        self.session.stim_position_info['x_offset'] += 0.1
+                    elif self.current_topic == 'y_offset':
+                        self.session.stim_position_info['y_offset'] += 0.1
+                    elif self.current_topic == 'width':
+                        self.session.stim_position_info['width'] += 0.1
+                    elif self.current_topic == 'height':
+                        self.session.stim_position_info['height'] += 0.1
+                elif ix == 2:
+                    if self.current_topic == 'x_offset':
+                        self.current_topic = 'y_offset'
+                    elif self.current_topic == 'y_offset':
+                        self.current_topic = 'width'
+                    elif self.current_topic == 'width':
+                        self.current_topic = 'height'
+                    elif self.current_topic == 'height':
+                        self.current_topic = 'x_offset'
+
+        if self.current_topic == 'x_offset':
+            self.info.text = 'x: {:0.2f}'.format(
+                self.session.stim_position_info['x_offset'])
+        elif self.current_topic == 'y_offset':
+            self.info.text = 'y: {:0.2f}'.format(
+                self.session.stim_position_info['y_offset'])
+        elif self.current_topic == 'width':
+            self.info.text = 'width: {:0.2f}'.format(
+                self.session.stim_position_info['width'])
+        elif self.current_topic == 'height':
+            self.info.text = 'height: {:0.2f}'.format(
+                self.session.stim_position_info['height'])
+
+        self.session.update_stim_position()
+        self.pos_stim.setPos(
+            [self.session.stim_position_info['x_offset'], self.session.stim_position_info['y_offset']])
+        self.pos_stim.setSize(
+            [self.session.stim_position_info['width'], self.session.stim_position_info['height']])
+        self.info.setPos([self.session.stim_position_info['x_offset'],
+                         self.session.stim_position_info['y_offset']])
+        self.info.setSize([self.session.stim_position_info['width'],
+                          self.session.stim_position_info['height']])
