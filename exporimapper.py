@@ -10,8 +10,8 @@ class ExpOriMapperSession(EyelinkSession):
 
     def __init__(self) -> None:
         super().__init__()
+        self.create_stimuli()
         self.create_trials()
-
 
     def update_stimulus_position(self):
         """ Updates the stimulus position """
@@ -20,6 +20,11 @@ class ExpOriMapperSession(EyelinkSession):
 
         for dot in [self.center_fixation_dot, self.surround_fixation_dot]:
             dot.pos = (self.stim_position_info['x_offset'], self.stim_position_info['y_offset'])
+
+    def save_stimulus_position_settings(self):
+        """ Saves the stimulus position settings to a file """
+        with open(self.stim_position_settings_file, 'w') as f:
+            yaml.dump(self.stim_position_info, f)
 
     def create_stimuli(self):
         """ Creates stimuli for the session """
@@ -82,9 +87,9 @@ class ExpOriMapperSession(EyelinkSession):
         self.trial_df = pd.read_csv(tsv_path, sep='\t', index_col=0, na_values='NA')
 
         # read in or set up stimulus positioning
-        self.stim_pos_info_path = f'data/sub-{str(self.sub).zfill(2)}_ses-{str(self.ses).zfill(2)}.yml'
-        if os.path.isfile(self.stim_pos_info_path):
-            with open(self.stim_pos_info_path, 'r', encoding='utf8') as f_in:
+        self.stim_position_settings_file = f'data/sub-{str(self.sub).zfill(2)}_ses-{str(self.ses).zfill(2)}.yml'
+        if os.path.isfile(self.stim_position_settings_file):
+            with open(self.stim_position_settings_file, 'r', encoding='utf8') as f_in:
                 self.stim_position_info = yaml.safe_load(f_in)
             self.trials = [instruction_trial, dummy_trial]
         else:
@@ -100,23 +105,27 @@ class ExpOriMapperSession(EyelinkSession):
 
         trial_counter = len(self.trials)
         for i in range(self.n_trials):
+            # add task settings to parameters of the trial
+            parameters = self.trial_df.iloc[i].to_dict()
+
+
             self.trials.append(ExpOriMapperTrial(
                 session=self,
                 trial_nr=i,
                 phase_durations=[
+                    1.0,
                     exp_s['warn_duration'],
                     stim_pres_duration,
                     remainder_trial_duration
-                ]
-                phase_names=['warning', 'stim', 'response'],
-                parameters=self.trial_df.iloc[i].to_dict(),
+                ],
+                phase_names=['fix', 'warning', 'stim', 'response'],
+                parameters=parameters,
                 timing='seconds',
                 load_next_during_phase=None,
                 verbose=True,
                 condition=self.task)
                 )
             trial_counter += 1
-
 
         outro_trial = OutroTrial(session=self,
                                  trial_nr=trial_counter,
@@ -130,7 +139,6 @@ class ExpOriMapperSession(EyelinkSession):
     def run(self):
         """ Loops over trials and runs them! """
 
-        self.create_trials()  # create them *before* running!
         self.start_experiment()
 
         for trial in self.trials:

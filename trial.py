@@ -140,18 +140,28 @@ class ExpOriMapperTrial(Trial):
                          parameters, timing, verbose, load_next_during_phase)
         self.condition = condition
         self.last_fix_time, self.last_stim_time = 0.0
+        self.trial_orientation = self.parameters['rounded_orientations_degrees']
 
     def draw(self):
-        if self.phase == 0:  # Python starts counting from 0, and so should you
+
+        exp_s = self.session.settings['experiment']
+
+        if self.phase == 1:  # warn phase, change color of fixation marker
+            self.session.center_fixation_dot.setColor(self.parameters['color'])
             self.last_fix_time = self.session.clock.getTime()
-        elif self.phase == 1:  # assuming that there are only 2 phases
-            self.last_stim_time = self.session.clock.getTime()
-            total_stim_time = self.last_stim_time - self.last_fix_time
-            stim_index = min(total_stim_time // self.duration_per_image,
-                             len(self.parameters['stim_list'])-1)
-            self.session.stimuli[self.parameters['stim_list']
-                                 [stim_index]].draw()
-        self.session.fixation_dot.draw()
+        else:
+            self.session.center_fixation_dot.setColor(exp_s['fixation_center_color'])
+
+        if self.phase == 2:  #  stimulus phase
+            draw_stim = False
+            stim_time = self.session.clock.getTime()
+            if (self.last_fix_time - stim_time) < exp_s['stim_duration']:
+                draw_stim = True
+                self.session.grating.setOri(self.trial_orientation + )
+            self.session.
+
+        self.session.surround_fixation_dot.draw()
+        self.session.center_fixation_dot.draw()
 
     def get_events(self):
         events = super().get_events(self)
@@ -159,6 +169,8 @@ class ExpOriMapperTrial(Trial):
         if events:
             for key, t in events:
                 if key == 'space':
+                    self.stop_phase()
+                if key == 't':
                     self.stop_phase()
 
 
@@ -267,3 +279,7 @@ class PositioningTrial(Trial):
                          self.session.stim_position_info['y_offset']])
         self.info.setSize([self.session.stim_position_info['width'],
                           self.session.stim_position_info['height']])
+
+    def stop_trial(self):
+        super().stop_trial()
+        self.session.save_stimulus_position_settings()

@@ -53,25 +53,27 @@ mri:
 experiment:
   stim_flicker_freq: 2 # Hz
   fixation_center_size: 0.125
+  fixation_center_color: 'black'
   fixation_surround_size: 0.75
+
+  stim_duration: 0.05 # s times two
+  interstim_interval: 0.05
 
   train_grating_size: 8
   train_grating_contrast: 0.6
   train_grating_sf: 1
   train_grating_fringewidth: 0.1
-  train_stim_duration: 0.05 # s times two
-  train_interstim_interval: 0.05
 
   test_grating_size: 8
   test_grating_contrast: 0.6
   test_grating_sf: 1
   test_grating_fringewidth: 0.1
-  test_stim_duration: 0.05 # s times two
-  test_interstim_interval: 0.05
 
   warn_duration: 0.5
   total_trial_duration: 4 # s
   start_end_period: 16 # s
+
+  task_range: [-2,2]
 
   instruction_text: "please report the direction of rotation of the presented grating: CW (right index) or CCW (left index)"
   pretrigger_text: "waiting for scanner"
