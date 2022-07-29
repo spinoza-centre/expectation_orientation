@@ -73,10 +73,17 @@ experiment:
   total_trial_duration: 4 # s
   start_end_period: 16 # s
 
-  task_range: [-2,2]
-
   instruction_text: "please report the direction of rotation of the presented grating: CW (right index) or CCW (left index)"
   pretrigger_text: "waiting for scanner"
+
+  # qwerty buttons from 'sure' to 'unsure'
+  ccw_buttons: ['a', 's', 'd', 'f']
+  cw_buttons: [';', 'l', 'k', 'j']
+
+  # fOrp buttons - check the order !!!!
+  # ccw_buttons: ['d', 'n', 'w', 'e']
+  # ccw_buttons: ['b', 'y', 'g', 'r']
+
 
 
 various:
@@ -96,3 +103,17 @@ stim_position_info:
 
 position_experiment:
   keys: []
+
+questplus:
+  intensityVals: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5]
+  thresholdVals: [0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0, 1.05, 1.1, 1.15, 1.2, 1.25, 1.3, 1.35, 1.4, 1.45, 1.5]
+  slopeVals: [0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0, 1.05, 1.1, 1.15, 1.2, 1.25, 1.3, 1.35, 1.4, 1.45, 1.5]
+  lowerAsymptoteVals: [0.5]
+  lapseRateVals: [0.0125, 0.025, 0.0375, 0.05, 0.625, 0.075, 0.0875, 0.1]
+  responseVals: [True, False]
+  prior: {threshold: 1.25, slope: 1, lowerAsymptote: 0.5, lapseRate: 0.025}
+  startIntensity: 1.0
+  stimScale: 'linear'
+  stimSelectionMethod: 'minEntropy'
+
+

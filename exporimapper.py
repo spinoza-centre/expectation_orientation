@@ -1,25 +1,40 @@
 from genericpath import isfile
 from exptools2.core import EyelinkSession
 import numpy as np
-import h5py, yaml
-import os, sys, time
+import h5py
+import yaml
+import os
+import sys
+import time
 import pandas as pd
 from psychopy.visual import GratingStim, Circle
+from psychopy.data.staircase import QuestPlusHandler
 from .trial import InstructionTrial, DummyWaiterTrial, OutroTrial, ExpOriMapperTrial, PositioningTrial
+
+
 class ExpOriMapperSession(EyelinkSession):
 
     def __init__(self) -> None:
         super().__init__()
         self.create_stimuli()
         self.create_trials()
+        self.create_staircase()
+
+    def create_staircase(self):
+        """ Creates a staircase for the session """
+        quest_plus_s = self.settings['questplus']
+        self.staircase = QuestPlusHandler(nTrials=self.n_trials, **quest_plus_s)
 
     def update_stimulus_position(self):
         """ Updates the stimulus position """
-        self.grating.pos = (self.stim_position_info['x_offset'], self.stim_position_info['y_offset'])
-        self.grating.size = (self.stim_position_info['width'], self.stim_position_info['height'])
+        self.grating.pos = (
+            self.stim_position_info['x_offset'], self.stim_position_info['y_offset'])
+        self.grating.size = (
+            self.stim_position_info['width'], self.stim_position_info['height'])
 
         for dot in [self.center_fixation_dot, self.surround_fixation_dot]:
-            dot.pos = (self.stim_position_info['x_offset'], self.stim_position_info['y_offset'])
+            dot.pos = (
+                self.stim_position_info['x_offset'], self.stim_position_info['y_offset'])
 
     def save_stimulus_position_settings(self):
         """ Saves the stimulus position settings to a file """
@@ -65,26 +80,29 @@ class ExpOriMapperSession(EyelinkSession):
         instruction_trial = InstructionTrial(session=self,
                                              trial_nr=0,
                                              phase_durations=[np.inf],
-                                             txt=self.settings['stimuli'].get('instruction_text'),
+                                             txt=self.settings['stimuli'].get(
+                                                 'instruction_text'),
                                              keys=['space'],
                                              draw_each_frame=False)
 
         dummy_trial = DummyWaiterTrial(session=self,
                                        trial_nr=1,
                                        phase_durations=[
-                                       np.inf, exp_s['start_end_period']],
-                                       txt=self.settings['stimuli'].get('pretrigger_text'),
+                                           np.inf, exp_s['start_end_period']],
+                                       txt=self.settings['stimuli'].get(
+                                           'pretrigger_text'),
                                        draw_each_frame=False)
 
         # paths
         default_settings_path = os.path.join(op.dirname(__file__),
-                                        'defaults.yml')
+                                             'defaults.yml')
         tsv_path = os.path.join(op.dirname(__file__),
-            f'run_designs/sub-{str(self.sub).zfill(2)}/sub-{str(self.sub).zfill(2)}_task-{str(self.task)}_run{str(self.run).zfill(2)}.tsv')
+                                f'run_designs/sub-{str(self.sub).zfill(2)}/sub-{str(self.sub).zfill(2)}_task-{str(self.task)}_run{str(self.run).zfill(2)}.tsv')
 
         with open(default_settings_path, 'r', encoding='utf8') as f_in:
             default_settings = yaml.safe_load(f_in)
-        self.trial_df = pd.read_csv(tsv_path, sep='\t', index_col=0, na_values='NA')
+        self.trial_df = pd.read_csv(
+            tsv_path, sep='\t', index_col=0, na_values='NA')
 
         # read in or set up stimulus positioning
         self.stim_position_settings_file = f'data/sub-{str(self.sub).zfill(2)}_ses-{str(self.ses).zfill(2)}.yml'
@@ -100,15 +118,28 @@ class ExpOriMapperSession(EyelinkSession):
             else:
                 self.trials = [instruction_trial, dummy_trial]
 
-        stim_pres_duration = 2*exp_s['test_stim_duration']+exp_s['test_interstim_interval']
-        remainder_trial_duration = -0.1 + exp_s['total_trial_duration'] - (stim_pres_duration + exp_s['warn_duration'])
+        stim_pres_duration = 2 * \
+            exp_s['test_stim_duration']+exp_s['test_interstim_interval']
+        remainder_trial_duration = -0.1 + \
+            exp_s['total_trial_duration'] - \
+            (stim_pres_duration + exp_s['warn_duration'])
 
         trial_counter = len(self.trials)
         for i in range(self.n_trials):
             # add task settings to parameters of the trial
             parameters = self.trial_df.iloc[i].to_dict()
-
-
+            parameters.update(self.default_settings['experiment'])
+            parameters.update(self.default_settings['stim_position_info'])
+            # add task placeholders to parameters of the trial
+            parameters.update({'response_value': np.nan,
+                               'response_key': np.nan,
+                               'response_sign': np.nan,
+                               'response_time': np.nan,
+                               'response_correct': np.nan,
+                               'button_pressed': np.nan,
+                               'stim_value_p1': np.nan,
+                               'stim_value_p2': np.nan,
+                               'correct_response_sign': np.random.choice([-1,1])})
             self.trials.append(ExpOriMapperTrial(
                 session=self,
                 trial_nr=i,
@@ -124,7 +155,7 @@ class ExpOriMapperSession(EyelinkSession):
                 load_next_during_phase=None,
                 verbose=True,
                 condition=self.task)
-                )
+            )
             trial_counter += 1
 
         outro_trial = OutroTrial(session=self,
@@ -142,6 +173,7 @@ class ExpOriMapperSession(EyelinkSession):
         self.start_experiment()
 
         for trial in self.trials:
+            trial.parameters['staircase_value'] = self.staircase.intensity
             trial.run()
 
         self.close()
