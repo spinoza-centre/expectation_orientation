@@ -15,10 +15,9 @@ from trial import InstructionTrial, \
 
 
 class ExpOriMapperSession(PylinkEyetrackerSession):
-
     def __init__(self, sub, run_id, ses, task, output_str, settings_file, eyetracker_on):
         super().__init__(output_str=output_str, output_dir=None, settings_file=settings_file, eyetracker_on=eyetracker_on)
-        self.sub= sub
+        self.sub = sub
         self.run_id = run_id
         self.ses = ses
         self.task = task
@@ -30,7 +29,7 @@ class ExpOriMapperSession(PylinkEyetrackerSession):
         """ Creates a staircase for the session """
         quest_plus_s = self.settings['questplus']
         self.staircase = QuestPlusHandler(
-            nTrials=self.n_trials, **quest_plus_s)
+            nTrials=self.n_trials+25, **quest_plus_s)
 
     def update_stimulus_position(self):
         """ Updates the stimulus position """
@@ -122,6 +121,7 @@ class ExpOriMapperSession(PylinkEyetrackerSession):
         stim_pres_duration = 2 * \
             exp_s['stim_duration']+exp_s['interstim_interval']
         # remainder makes sure we flip to the next trial in time for the next trial
+        # stim presentation in the scanner should be triggered by the scanner
         remainder_trial_duration = -0.1 + \
             exp_s['total_trial_duration'] - \
             (stim_pres_duration + exp_s['warn_duration'])

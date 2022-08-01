@@ -1,6 +1,7 @@
 import numpy as np
-from psychopy.visual import TextStim, ShapeStim
+from psychopy.visual import TextStim, ShapeStim, ImageStim
 from exptools2.core import Trial
+
 
 class InstructionTrial(Trial):
     """ Simple trial with instruction text. """
@@ -21,6 +22,10 @@ class InstructionTrial(Trial):
         if txt is None:
             txt = '''Press any button to continue.'''
 
+        self.gammastim = ImageStim(win=self.session.win,
+                                 image='data/gamma.png',
+                                 size=self.session.settings['various'].get('gamma_stim_size'))
+
         self.text = TextStim(self.session.win, txt,
                              height=txt_height,
                              wrapWidth=txt_width,
@@ -35,8 +40,9 @@ class InstructionTrial(Trial):
 
     def draw(self):
         exp_s = self.session.settings['experiment']
+        self.gammastim.draw()
         self.session.center_fixation_dot.setColor(
-                exp_s['fixation_center_color'])
+            exp_s['fixation_center_color'])
         self.session.surround_fixation_dot.draw()
         self.session.center_fixation_dot.draw()
         self.text.draw()
@@ -152,7 +158,7 @@ class ExpOriMapperTrial(Trial):
             self.last_warn_time = self.session.clock.getTime()
             self.session.grating.phase = self.parameters['grating_phase']
             self.session.grating.contrast = self.parameters['grating_contrast_multiplier'] * \
-                    self.parameters['grating_contrast']
+                self.parameters['grating_contrast']
         else:
             self.session.center_fixation_dot.setColor(
                 exp_s['fixation_center_color'])
@@ -165,7 +171,7 @@ class ExpOriMapperTrial(Trial):
                 self.parameters['stim_value_p1'] = self.parameters['correct_response_sign'] * \
                     self.parameters['staircase_value'] / 2
                 self.session.grating.ori = self.parameters['rounded_orientation_degrees'] + \
-                                            self.parameters['stim_value_p1']
+                    self.parameters['stim_value_p1']
             elif (self.last_stim_time - self.last_warn_time) < (exp_s['stim_duration'] + exp_s['interstim_interval']):
                 draw_grating = False
             elif (self.last_stim_time - self.last_warn_time) < (2*exp_s['stim_duration'] + exp_s['interstim_interval']):
@@ -173,7 +179,7 @@ class ExpOriMapperTrial(Trial):
                 self.parameters['stim_value_p2'] = -self.parameters['correct_response_sign'] * \
                     self.parameters['staircase_value'] / 2
                 self.session.grating.ori = self.parameters['rounded_orientation_degrees'] + \
-                                            self.parameters['stim_value_p2']
+                    self.parameters['stim_value_p2']
             if draw_grating:
                 self.session.grating.draw()
 
@@ -186,10 +192,8 @@ class ExpOriMapperTrial(Trial):
 
         if events:
             for key, t in events:
-                if key == 'space':
-                    self.stop_phase()
                 if key == 't':
-                    if self.phase == 1:
+                    if self.phase == 0:
                         self.stop_phase()
                         self.session.win.flip()
                 if self.phase == 3:
