@@ -34,14 +34,16 @@ class InstructionTrial(Trial):
         self.keys = keys
 
     def draw(self):
-        self.session.stim_position_info.draw()
+        exp_s = self.session.settings['experiment']
+        self.session.center_fixation_dot.setColor(
+                exp_s['fixation_center_color'])
+        self.session.surround_fixation_dot.draw()
         self.session.center_fixation_dot.draw()
-
         self.text.draw()
         self.session.win.flip()
 
     def get_events(self):
-        events = super().get_events(timeStamped=self.session.clock)
+        events = super().get_events()
 
         if self.keys is None:
             if events:
@@ -70,7 +72,7 @@ class DummyWaiterTrial(InstructionTrial):
         self.session.win.flip()
 
     def get_events(self):
-        events = super().get_events(self)
+        events = super().get_events()
 
         if events:
             for key, t in events:
@@ -90,7 +92,7 @@ class OutroTrial(InstructionTrial):
                          txt=txt, draw_each_frame=draw_each_frame, **kwargs)
 
     def get_events(self):
-        events = super().get_events(self)
+        events = super().get_events()
 
         if events:
             for key, t in events:
@@ -139,35 +141,39 @@ class ExpOriMapperTrial(Trial):
         super().__init__(session, trial_nr, phase_durations, phase_names,
                          parameters, timing, verbose, load_next_during_phase)
         self.condition = condition
-        self.last_fix_time, self.last_stim_time = 0.0
+        self.last_fix_time, self.last_warn_time, self.last_stim_time = 0.0, 0.0, 0.0
         self.trial_answered = False
 
     def draw(self):
-
         exp_s = self.session.settings['experiment']
 
         if self.phase == 1:  # warn phase, change color of fixation marker
             self.session.center_fixation_dot.setColor(self.parameters['color'])
-            self.last_fix_time = self.session.clock.getTime()
+            self.last_warn_time = self.session.clock.getTime()
+            self.session.grating.phase = self.parameters['grating_phase']
+            self.session.grating.contrast = self.parameters['grating_contrast_multiplier'] * \
+                    self.parameters['grating_contrast']
         else:
             self.session.center_fixation_dot.setColor(
                 exp_s['fixation_center_color'])
 
         if self.phase == 2:  # stimulus phase
+            self.last_stim_time = self.session.clock.getTime()
             draw_grating = False
-            stim_time = self.session.clock.getTime()
-            if (self.last_fix_time - stim_time) < exp_s['stim_duration']:
+            if (self.last_stim_time - self.last_warn_time) < exp_s['stim_duration']:
                 draw_grating = True
                 self.parameters['stim_value_p1'] = self.parameters['correct_response_sign'] * \
                     self.parameters['staircase_value'] / 2
-                self.session.grating.setOri(self.parameters['rounded_orientation_degrees'] +
-                                            self.parameters['stim_value_p1'])
-            if (self.last_fix_time - stim_time) > (exp_s['stim_duration'] + exp_s['test_interstim_interval']):
+                self.session.grating.ori = self.parameters['rounded_orientation_degrees'] + \
+                                            self.parameters['stim_value_p1']
+            elif (self.last_stim_time - self.last_warn_time) < (exp_s['stim_duration'] + exp_s['interstim_interval']):
+                draw_grating = False
+            elif (self.last_stim_time - self.last_warn_time) < (2*exp_s['stim_duration'] + exp_s['interstim_interval']):
                 draw_grating = True
                 self.parameters['stim_value_p2'] = -self.parameters['correct_response_sign'] * \
                     self.parameters['staircase_value'] / 2
-                self.session.grating.setOri(self.parameters['rounded_orientation_degrees'] +
-                                            self.parameters['stim_value_p2'])
+                self.session.grating.ori = self.parameters['rounded_orientation_degrees'] + \
+                                            self.parameters['stim_value_p2']
             if draw_grating:
                 self.session.grating.draw()
 
@@ -176,7 +182,7 @@ class ExpOriMapperTrial(Trial):
 
     def get_events(self):
         exp_s = self.session.settings['experiment']
-        events = super().get_events(self)
+        events = super().get_events()
 
         if events:
             for key, t in events:
@@ -254,12 +260,12 @@ class PositioningTrial(Trial):
         """ Draws stimuli """
 
         self.pos_stim.draw()
-        self.session.pos_stim.draw()
-        self.session.fixation_stimulus.draw()
+        self.session.surround_fixation_dot.draw()
+        self.session.stim_position_info.draw()
         self.info.draw()
 
     def get_events(self):
-        events = super().get_events(timeStamped=self.session.clock)
+        events = super().get_events()
 
         if events:
             if 'q' in [ev[0] for ev in events]:  # specific key in settings?

@@ -53,32 +53,27 @@ class ExpOriMapperSession(PylinkEyetrackerSession):
         exp_s = self.settings['experiment']
 
         self.center_fixation_dot = Circle(
-            self.win, radius=exp_s['fixation_center_size'], edges=200, color='w')
-        self.surround_fixation_dot = Circle(
-            self.win, radius=exp_s['fixation_surround_size'], edges=200, color=0)
+            self.win, radius=exp_s['fixation_center_size'], edges=200, color='black')
+        self.surround_fixation_dot = GratingStim(
+            self.win,
+            size=exp_s['fixation_surround_size'],
+            contrast=0,
+            mask='raisedCos',
+            maskParams={'fringeWidth': exp_s['fixation_surround_fw']})
 
-        if self.task == 'train':
-            size = exp_s['train_grating_size']
-            sf = exp_s['train_grating_sf']
-            contrast = exp_s['train_grating_contrast']
-            fringewidth = exp_s['train_grating_fringewidth']
-        elif self.task == 'test':
-            size = exp_s['test_grating_size']
-            sf = exp_s['test_grating_sf']
-            contrast = exp_s['test_grating_contrast']
-            fringewidth = exp_s['test_grating_fringewidth']
-        else:
-            raise ValueError('Unknown run type: {}'.format(self.task))
         self.grating = GratingStim(win=self.win,
                                    tex='sin',
-                                   size=size,
-                                   sf=sf,
-                                   contrast=contrast,
+                                   size=exp_s['grating_size'],
+                                   sf=exp_s['grating_sf'],
+                                   contrast=exp_s['grating_contrast'],
                                    ori=0,
                                    phase=0,
                                    mask='raisedCos',
-                                   maskParams={'fringeWidth': fringewidth},
+                                   maskParams={'fringeWidth': exp_s['grating_fringewidth']},
                                    texRes=1024)
+
+    def create_trial(self, trial_nr):
+        pass
 
     def create_trials(self):
         """ Creates trials before running the session"""
@@ -105,7 +100,7 @@ class ExpOriMapperSession(PylinkEyetrackerSession):
                                 f'exp_designs/run_designs/sub-{str(self.sub).zfill(2)}/sub-{str(self.sub).zfill(2)}_task-{str(self.task)}_run-{str(self.run_id).zfill(2)}.tsv')
 
         with open(default_settings_path, 'r', encoding='utf8') as f_in:
-            default_settings = yaml.safe_load(f_in)
+            self.default_settings = yaml.safe_load(f_in)
         self.trial_df = pd.read_csv(
             tsv_path, sep='\t', index_col=0, na_values='NA')
         self.n_trials = len(self.trial_df)
@@ -117,7 +112,7 @@ class ExpOriMapperSession(PylinkEyetrackerSession):
                 self.stim_position_info = yaml.safe_load(f_in)
             self.trials = [instruction_trial, dummy_trial]
         else:
-            self.stim_position_info = default_settings['stim_position_info']
+            self.stim_position_info = self.default_settings['stim_position_info']
             if self.stim_position_info['repositioning_required']:
                 position_trial = PositioningTrial(session=self)
                 self.trials = [position_trial, instruction_trial, dummy_trial]
@@ -181,7 +176,7 @@ class ExpOriMapperSession(PylinkEyetrackerSession):
         print('running eomapper experiment')
 
         for trial in self.trials:
-            trial.parameters['staircase_value'] = self.staircase.intensity
+            trial.parameters['staircase_value'] = self.staircase.next()
             trial.run()
 
         self.close()
