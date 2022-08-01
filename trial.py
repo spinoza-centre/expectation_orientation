@@ -203,7 +203,7 @@ class ExpOriMapperTrial(Trial):
                             self.parameters['response_value'] = exp_s['cw_buttons'].index(
                                 key)
                             self.parameters['response_sign'] = 1
-                            self.parameters['response_time'] = t
+                            self.parameters['response_time'] = t - self.last_warn_time
                             if self.parameters['correct_response_sign'] == 1:
                                 self.parameters['response_correct'] = 1
                             else:
@@ -215,13 +215,15 @@ class ExpOriMapperTrial(Trial):
                             self.parameters['response_value'] = exp_s['ccw_buttons'].index(
                                 key)
                             self.parameters['response_sign'] = -1
-                            self.parameters['response_time'] = t
+                            self.parameters['response_time'] = t - self.last_warn_time
                             if self.parameters['correct_response_sign'] == -1:
                                 self.parameters['response_correct'] = 1
                             else:
                                 self.parameters['response_correct'] = 0
                             self.session.staircase.addResponse(
                                 self.parameters['response_correct'])
+                        self.parameters['response'] = 1
+                        self.log_phase_info(None)
                         self.trial_answered = True
 
 

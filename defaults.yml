@@ -10,7 +10,7 @@ monitor:
   name: 7T
   width: 70 # in cm
   distance: 200 # in cm
-  gamma: 1
+  gamma: 2.2
 
 mouse:
   visible: False
@@ -51,7 +51,7 @@ mri:
   sound: False # simulate scanner noise
 
 experiment:
-  fixation_center_size: 0.025
+  fixation_center_size: 0.05
   fixation_center_color: 'black'
   fixation_surround_size: 0.25
   fixation_surround_fw: 0.5
