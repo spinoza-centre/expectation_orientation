@@ -1,6 +1,6 @@
 import numpy as np
 from psychopy.visual import TextStim, ShapeStim
-
+from exptools2.core import Trial
 
 class InstructionTrial(Trial):
     """ Simple trial with instruction text. """
@@ -150,22 +150,23 @@ class ExpOriMapperTrial(Trial):
             self.session.center_fixation_dot.setColor(self.parameters['color'])
             self.last_fix_time = self.session.clock.getTime()
         else:
-            self.session.center_fixation_dot.setColor(exp_s['fixation_center_color'])
+            self.session.center_fixation_dot.setColor(
+                exp_s['fixation_center_color'])
 
-        if self.phase == 2:  #  stimulus phase
+        if self.phase == 2:  # stimulus phase
             draw_grating = False
             stim_time = self.session.clock.getTime()
             if (self.last_fix_time - stim_time) < exp_s['stim_duration']:
                 draw_grating = True
                 self.parameters['stim_value_p1'] = self.parameters['correct_response_sign'] * \
-                                                self.parameters['staircase_value'] / 2
-                self.session.grating.setOri(self.parameters['rounded_orientation_degrees'] + \
+                    self.parameters['staircase_value'] / 2
+                self.session.grating.setOri(self.parameters['rounded_orientation_degrees'] +
                                             self.parameters['stim_value_p1'])
             if (self.last_fix_time - stim_time) > (exp_s['stim_duration'] + exp_s['test_interstim_interval']):
                 draw_grating = True
                 self.parameters['stim_value_p2'] = -self.parameters['correct_response_sign'] * \
-                                                self.parameters['staircase_value'] / 2
-                self.session.grating.setOri(self.parameters['rounded_orientation_degrees'] + \
+                    self.parameters['staircase_value'] / 2
+                self.session.grating.setOri(self.parameters['rounded_orientation_degrees'] +
                                             self.parameters['stim_value_p2'])
             if draw_grating:
                 self.session.grating.draw()
@@ -189,24 +190,28 @@ class ExpOriMapperTrial(Trial):
                     if not self.trial_answered:
                         if key in exp_s['cw_buttons']:
                             self.parameters['response_key'] = key
-                            self.parameters['response_value'] = exp_s['cw_buttons'].index(key)
+                            self.parameters['response_value'] = exp_s['cw_buttons'].index(
+                                key)
                             self.parameters['response_sign'] = 1
                             self.parameters['response_time'] = t
                             if self.parameters['correct_response_sign'] == 1:
                                 self.parameters['response_correct'] = 1
                             else:
                                 self.parameters['response_correct'] = 0
-                            self.session.staircase.addResponse(self.parameters['response_correct'])
+                            self.session.staircase.addResponse(
+                                self.parameters['response_correct'])
                         elif key in exp_s['ccw_buttons']:
                             self.parameters['response_key'] = key
-                            self.parameters['response_value'] = exp_s['ccw_buttons'].index(key)
+                            self.parameters['response_value'] = exp_s['ccw_buttons'].index(
+                                key)
                             self.parameters['response_sign'] = -1
                             self.parameters['response_time'] = t
                             if self.parameters['correct_response_sign'] == -1:
                                 self.parameters['response_correct'] = 1
                             else:
                                 self.parameters['response_correct'] = 0
-                            self.session.staircase.addResponse(self.parameters['response_correct'])
+                            self.session.staircase.addResponse(
+                                self.parameters['response_correct'])
                         self.trial_answered = True
 
 
@@ -239,11 +244,11 @@ class PositioningTrial(Trial):
         angles = np.linspace(0, 2*np.pi, 300)
         self.shape = np.array([[np.sin(a),  np.cos(a)] for a in angles])
         self.pos_stim = ShapeStim(win=self.session.win,
-                                    vertices=self.shape,
-                                    size=[self.session.stim_position_info['width'],
-                                            self.session.stim_position_info['height']],
-                                    pos=[self.session.stim_position_info['x_offset'],
-                                        self.session.stim_position_info['y_offset']])
+                                  vertices=self.shape,
+                                  size=[self.session.stim_position_info['width'],
+                                        self.session.stim_position_info['height']],
+                                  pos=[self.session.stim_position_info['x_offset'],
+                                       self.session.stim_position_info['y_offset']])
 
     def draw(self):
         """ Draws stimuli """
