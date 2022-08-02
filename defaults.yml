@@ -64,7 +64,7 @@ experiment:
   grating_sf: 1.5
   grating_fringewidth: 0.1
 
-  warn_duration: 0.5
+  warn_duration: 0.75
   total_trial_duration: 3.2 # s
   start_end_period: 16 # s
 

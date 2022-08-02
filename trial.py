@@ -222,7 +222,6 @@ class ExpOriMapperTrial(Trial):
                                 self.parameters['response_correct'] = 0
                             self.session.staircase.addResponse(
                                 self.parameters['response_correct'])
-                        self.parameters['response'] = 1
                         self.log_phase_info(None)
                         self.trial_answered = True
 
